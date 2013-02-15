@@ -5,40 +5,47 @@
 
 use strict;
 use warnings;
-#use AnyEvent;
+
+use POSIX;
+use common::sense;
 use LWP::Simple;
 use File::Path qw(make_path);
+use File::Slurp;
+use YADA;
+use Parser;
+
 use Data::Dumper;
 
 # TODO: logfile needed
 
 my $yaca_url = "http://yaca.yandex.ru";
 my $yaca_path = "/home/jester/freelance/parser";
-my $columns_file = "/home/jester/freelance/parser/yaca-columns.txt";
+my $rubrics_file = "/home/jester/freelance/parser/yaca-columns.txt";
 my $yaca_urls_file = "/home/jester/freelance/parser/yaca-columns-urls.txt";
+my $websites_file = "/home/jester/freelance/parser/websites.txt";
+
 my @yaca_site_urls;
 my @columns_urls;
+my $hosts = 2; # number of hosts processing
+my $sites_number = 0;
+my @rubric_urls;
+my @websites;
 
 sub main {
     #
-    # Get all yaca columns
+    # Get all yandex catalog rubrics
     #
-    open(F, $columns_file) || die "$columns_file: $!";
-    while (<F>) {
-        chomp;
-        push @columns_urls, $_;
-    }
-    close(F);
+    @columns_urls = read_file($rubrics_file, chomp => 1);
 
-    # check if file with yaca column urls exists
+    # check if file with yandex catalog rubric urls exists
     #
     unless (-e $yaca_urls_file) {
-        warn "Yaca columns file not found, downloading...";
+        warn "Yandex catalog rubrics file not found, fetching ...";
 
         get_and_store_yaca();
 
         warn "saving to $yaca_urls_file...";
-        # save results with yaca urls to disk
+        # save results with yandex catalog urls to disk
         #
         open(F, ">$yaca_urls_file") || die "";
         for my $url (@yaca_site_urls) {
@@ -47,72 +54,97 @@ sub main {
         close(F);
     }
 
-    # parsing yaca columns urls in order to extract websites urls
-    print Dumper \@yaca_site_urls;
-}
+    my @url = read_file("yandex_test_rubric.txt", chomp => 1);
 
-# extract urls to yaca columns and save them to disk
-#
-sub get_and_store_yaca {
+    for my $rubric (@url) {
 
-    for my $url (@columns_urls) {
-        my $content = get $url;
-        die "Couldn't get $url" unless defined $content;
+        my $content = get $rubric;
+        die "Couldn't get $rubric" unless defined $content;
 
-        my @dt_tags = ($content =~ /b-rubric__list__item\"\>\<a href=\".+?\"/g);
+        # parse number of pages in rubric
+        if ($content =~ /b-site-counter__number\"\>(\d+) сайтов/) {
+            $sites_number = $1;
+        }
 
-        for my $tag (@dt_tags) {
-            if ($tag =~ /href=\"(\S+)\"/) {
-                my $path = $1;
-                next if $path =~ /^http\:/;
-                my $sub_rubric_item = $yaca_url . $path;
+        # create list of all pages's urls to parse
+        # TODO: first page is already fetched
 
-                my $yaca = $yaca_path . $path;
-                make_path($yaca);
+        # 10 websites per page
+        $sites_number = ceil( $sites_number / 10 );
 
-                
-                my $con = get $sub_rubric_item;
-                die "Couldn't get $sub_rubric_item" unless defined $con;
-                # TODO: avoid such urls: http://yaca.yandex.ruhttp://market.yandex.ru/catalog.xml?hid=90402
+        push @rubric_urls, $rubric;
 
-                my @dd_tags = ($con =~ /b-rubric__list__loopitem\"\>\<a href=\".+?\"/g);
+        my $i = 0; # test
 
-                for my $dtag (@dd_tags) {
-                    if ($dtag =~ /href=\"(\S+)\"/) {
-                        my $path = $1;
-                        my $yaca = $yaca_path . $path;
-                        make_path($yaca);
-                        push @yaca_site_urls, $yaca_url . $path;
-                    }
+        for my $i (1 .. $sites_number-1) {
+            last if $i++ == 10;
+            push @rubric_urls, $rubric . "$i.html";
+        }
+
+
+    # making asynchronous downloads
+
+    YADA->new($hosts)->append(
+        \@rubric_urls => {
+            retry   => 0,
+            timeout => 5,
+            opts    => {
+                useragent => 'Opera/9.80 (Windows 7; U; en) Presto/2.9.168 Version/11.50',
+                #verbose   => 1,
+            },
+        } => sub {
+            my $self = shift;
+
+            my $code = $self->getinfo('response_code');
+            my $url = $self->final_url;
+
+            my @www_urls = ($content =~ /href=\".+?\" class=\"b-result__name\"/g);
+
+            for my $item (@www_urls) {
+                if ($item =~ /^href=\"(.+?)\"/) {
+                    push @websites, $1;
                 }
             }
-        }
+
+            save_urls( @websites );
+
+            #exit;
+
+            say "[+] $url - code: $code";
+
+            #given ($code) {
+            #when (200) {
+            #    open my $fh, '>>', '200.txt';
+            #    say {$fh} $url;
+            #    close $fh;
+            #} when (301) {
+            #    open my $fh, '>>', '301.txt';
+            #    say {$fh} $url;
+            #    close $fh;
+            #} default {
+            #    open my $fh, '>>', 'else.txt';
+            #    say {$fh} "$url code - $code";
+            #    close $fh;
+            #}
+        },
+    )->wait;
+
     }
 }
 
-=comment
-# this url contains all websites of column
-my $url = "http://yaca.yandex.ru/yca/ungrp/cat/Automobiles/";
+# Save all extracted urls to disk
+#
+sub save_urls {
 
-my $content = get $url;
-die "Couldn't get $url" unless defined $content;
+    my @urls = @_;
 
-# <a href="http://auto.ru/" class="b-result__name" ... </a>
-# extract all urls
+    open(F, ">>$websites_file") || die "$websites_file: $!";
 
-my @urls = ($content =~ /\<a .+?b-result__name.+?\>/g);
-
-# <a href="http://www.autonews.ru/" class="b-result__name" onmousedown="r(this,'ctya')" target="_blank">
-
-for my $tag (@urls) {
-    if ($tag =~ /href=\"(\S+)\"/) {
-        print "$1\n";
+    for my $item (@urls) {
+        print F "$item\n";
     }
+
+    close(F);
 }
-
-# move to next page in catalog
-# <a class="b-pager__next" href="/yca/ungrp/cat/Automobiles/1.html">следующая</a>
-
-=cut
 
 &main;
