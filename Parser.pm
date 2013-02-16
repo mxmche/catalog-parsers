@@ -1,10 +1,71 @@
 package Parser;
 
 # This module is used for parsing Yandex catalog
+#
+# class: Parser, properties: LOGFILE, URLS_FILE
+# methods: ExtractRubrics(), ParsePageForURLS(), PrintToLogfile(), GetNumberOfSitesInRubric()
 
 use LWP;
-use File::Path(make_path);
+use File::Path qw(make_path);
 
+my $logfile = "/home/jester/freelance/parser/parser.log";
+my $websites_file = "/home/jester/freelance/parser/websites.txt";
+
+# Parses page for urls and saves result to disk
+#
+sub parse_page {
+
+    my ($content) = @_;
+
+    my @www_urls = ($content =~ /href=\".+?\" class=\"b-result__name\"/g);
+
+    my @urls;
+    for my $item (@www_urls) {
+        if ($item =~ /^href=\"(.+?)\"/) {
+            push @urls, $1;
+        }
+    }
+
+    # save parsed urls to disk
+
+    open(F, ">>$websites_file") || die "$websites_file: $!";
+
+    for my $item (@urls) {
+        print F "$item\n";
+    }
+
+    close(F);
+}
+
+sub print_to_log {
+
+    my ($message) = @_;
+
+    my $date = scalar(gmtime);
+
+    open(LOG, ">>$logfile") || die "$logfile: $!";
+    print LOG "[$date] $message\n";
+    close(LOG);
+}
+
+# Returns number of websites in yaca rubric
+#
+sub get_sites_number {
+
+    my ($rubric) = @_;
+
+    my $content = get $rubric;
+    die "Couldn't get $rubric" unless defined $content;
+
+    # parse number of pages in rubric
+
+    my $sites_number = "";
+    if ($content =~ /b-site-counter__number\"\>(\d+) сайтов/) {
+        $sites_number = $1;
+    }
+
+    return $sites_number;
+}
 
 # Extract all yandex rubrics urls and save them to disk
 #

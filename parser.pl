@@ -16,13 +16,14 @@ use Parser;
 
 use Data::Dumper;
 
-# TODO: logfile needed
+# TODO: config needed
 
 my $yaca_url = "http://yaca.yandex.ru";
 my $yaca_path = "/home/jester/freelance/parser";
 my $rubrics_file = "/home/jester/freelance/parser/yaca-columns.txt";
 my $yaca_urls_file = "/home/jester/freelance/parser/yaca-columns-urls.txt";
 my $websites_file = "/home/jester/freelance/parser/websites.txt";
+#my $logfile = "/home/jester/freelance/parser/parser.log";
 
 my @yaca_site_urls;
 my @columns_urls;
@@ -40,7 +41,8 @@ sub main {
     # check if file with yandex catalog rubric urls exists
     #
     unless (-e $yaca_urls_file) {
-        warn "Yandex catalog rubrics file not found, fetching ...";
+        print_to_log("Yandex catalog rubrics file not found, fetching ...");
+        #warn "Yandex catalog rubrics file not found, fetching ...";
 
         get_and_store_yaca();
 
@@ -58,13 +60,15 @@ sub main {
 
     for my $rubric (@url) {
 
-        my $content = get $rubric;
-        die "Couldn't get $rubric" unless defined $content;
+        #my $content = get $rubric;
+        #die "Couldn't get $rubric" unless defined $content;
 
         # parse number of pages in rubric
-        if ($content =~ /b-site-counter__number\"\>(\d+) сайтов/) {
-            $sites_number = $1;
-        }
+        #if ($content =~ /b-site-counter__number\"\>(\d+) сайтов/) {
+        #    $sites_number = $1;
+        #}
+
+        $sites_number = get_sites_number( $rubric );
 
         # create list of all pages's urls to parse
         # TODO: first page is already fetched
@@ -77,7 +81,7 @@ sub main {
         my $i = 0; # test
 
         for my $i (1 .. $sites_number-1) {
-            last if $i++ == 10;
+            last if $i++ == 10; # test
             push @rubric_urls, $rubric . "$i.html";
         }
 
@@ -87,7 +91,7 @@ sub main {
     YADA->new($hosts)->append(
         \@rubric_urls => {
             retry   => 0,
-            timeout => 5,
+            timeout => 10,
             opts    => {
                 useragent => 'Opera/9.80 (Windows 7; U; en) Presto/2.9.168 Version/11.50',
                 #verbose   => 1,
@@ -97,20 +101,21 @@ sub main {
 
             my $code = $self->getinfo('response_code');
             my $url = $self->final_url;
+            #my $content = ${ $self->{data} };
 
-            my @www_urls = ($content =~ /href=\".+?\" class=\"b-result__name\"/g);
+            # extract urls
 
-            for my $item (@www_urls) {
-                if ($item =~ /^href=\"(.+?)\"/) {
-                    push @websites, $1;
-                }
-            }
+            parse_page( ${ $self->{data} } );
 
-            save_urls( @websites );
+            #my @www_urls = ($content =~ /href=\".+?\" class=\"b-result__name\"/g);
+            #for my $item (@www_urls) {
+            #    if ($item =~ /^href=\"(.+?)\"/) {
+            #        push @websites, $1;
+            #    }
+            #}
 
-            #exit;
-
-            say "[+] $url - code: $code";
+            my $msg = "[+] $url - code: $code";
+            print_to_log( $msg );
 
             #given ($code) {
             #when (200) {
@@ -134,6 +139,7 @@ sub main {
 
 # Save all extracted urls to disk
 #
+=comment
 sub save_urls {
 
     my @urls = @_;
@@ -146,5 +152,6 @@ sub save_urls {
 
     close(F);
 }
+=cut
 
 &main;
