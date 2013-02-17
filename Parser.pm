@@ -14,7 +14,6 @@ my $websites_file = "/home/jester/freelance/parser/websites.txt";
 # Parses page for urls and saves result to disk
 #
 sub parse_page {
-
     my ($content) = @_;
 
     my @www_urls = ($content =~ /href=\".+?\" class=\"b-result__name\"/g);
@@ -51,7 +50,6 @@ sub print_to_log {
 # Returns number of websites in yaca rubric
 #
 sub get_sites_number {
-
     my ($rubric) = @_;
 
     my $content = get $rubric;
@@ -70,7 +68,6 @@ sub get_sites_number {
 # Extract all yandex rubrics urls and save them to disk
 #
 sub get_and_store_yaca {
-
     for my $url (@columns_urls) {
         my $content = get $url;
         die "Couldn't get $url" unless defined $content;

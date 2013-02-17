@@ -59,19 +59,9 @@ sub main {
     my @url = read_file("yandex_test_rubric.txt", chomp => 1);
 
     for my $rubric (@url) {
-
-        #my $content = get $rubric;
-        #die "Couldn't get $rubric" unless defined $content;
-
-        # parse number of pages in rubric
-        #if ($content =~ /b-site-counter__number\"\>(\d+) сайтов/) {
-        #    $sites_number = $1;
-        #}
-
         $sites_number = get_sites_number( $rubric );
 
         # create list of all pages's urls to parse
-        # TODO: first page is already fetched
 
         # 10 websites per page
         $sites_number = ceil( $sites_number / 10 );
@@ -107,51 +97,13 @@ sub main {
 
             parse_page( ${ $self->{data} } );
 
-            #my @www_urls = ($content =~ /href=\".+?\" class=\"b-result__name\"/g);
-            #for my $item (@www_urls) {
-            #    if ($item =~ /^href=\"(.+?)\"/) {
-            #        push @websites, $1;
-            #    }
-            #}
-
-            my $msg = "[+] $url - code: $code";
+            my $msg = "fetching $url ... ";
+            $msg .= ($code == 200)? "ok\n" : "no";
             print_to_log( $msg );
-
-            #given ($code) {
-            #when (200) {
-            #    open my $fh, '>>', '200.txt';
-            #    say {$fh} $url;
-            #    close $fh;
-            #} when (301) {
-            #    open my $fh, '>>', '301.txt';
-            #    say {$fh} $url;
-            #    close $fh;
-            #} default {
-            #    open my $fh, '>>', 'else.txt';
-            #    say {$fh} "$url code - $code";
-            #    close $fh;
-            #}
         },
     )->wait;
 
     }
 }
-
-# Save all extracted urls to disk
-#
-=comment
-sub save_urls {
-
-    my @urls = @_;
-
-    open(F, ">>$websites_file") || die "$websites_file: $!";
-
-    for my $item (@urls) {
-        print F "$item\n";
-    }
-
-    close(F);
-}
-=cut
 
 &main;
