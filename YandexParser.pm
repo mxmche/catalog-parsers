@@ -13,6 +13,9 @@ our @EXPORT = qw(get_sites_number parse_page print_to_log get_and_store_yaca);
 use LWP;
 use LWP::Simple;
 
+use Mojo::UserAgent;
+use Mojo::URL;
+
 use File::Path qw(make_path);
 
 use Data::Dumper;
@@ -65,58 +68,41 @@ sub print_to_log {
 # Returns number of websites in yaca rubric
 #
 sub get_sites_number {
-    my ($rubric) = @_;
+    my ($rubric_url) = @_;
 
-    my $content = get $rubric;
-    die "Couldn't get $rubric" unless defined $content;
+    my $ua = Mojo::UserAgent->new();
+    my $text = $ua->get($rubric_url)->res->dom->find('.b-site-counter__number')->pluck('text');
 
-    # parse number of pages in rubric
-
-    my $sites_number = "";
-    if ($content =~ /b-site-counter__number\"\>(\d+)/) {
-        $sites_number = $1;
-    }
-
-    return $sites_number;
+    return ($text =~ /(\d+)/)? $1 : "";
 }
 
 # Extract all yandex rubrics urls and save them to disk
 #
 sub get_and_store_yaca {
     my @rubric_urls  = @_;
-
-    # check yandex rubrics path
-    -d $yaca_path || make_path($yaca_path) || die "$yaca_path: $!";
+    my $ua = Mojo::UserAgent->new();
 
     for my $url (@rubric_urls) {
-        my $content = get $url;
-        die "Couldn't get $url" unless defined $content;
-
-        my @dt_tags = ($content =~ /b-rubric__list__item\"\>\<a href=\".+?\"/g);
+        my @dt_tags = $ua->get($url)->res->dom->find('.b-rubric__list__item__link')->each;
 
         for my $tag (@dt_tags) {
-            if ($tag =~ /href=\"(\S+)\"/) {
-                my $path = $1;
-                next if $path =~ /http\:/;
-                my $sub_rubric_item = $yaca_url . $path;
+            my $path = Mojo::URL->new($tag->{href});
 
+            next if $path =~ /^http/;
+            my $sub_rubric_item = $yaca_url . $path;
+
+            my $yaca = $yaca_path . $path;
+            make_path($yaca);
+
+            my @dd_tags = $ua->get($sub_rubric_item)->res->dom->find('.b-rubric__list__item__link')->each;
+
+            for my $dtag (@dd_tags) {
+                my $path = Mojo::URL->new($dtag->{href});
+
+                next if $path =~ /^http/;
                 my $yaca = $yaca_path . $path;
                 make_path($yaca);
-
-                my $con = get $sub_rubric_item;
-                die "Couldn't get $sub_rubric_item" unless defined $con;
-                # TODO: avoid such urls: http://yaca.yandex.ruhttp://market.yandex.ru/catalog.xml?hid=90402
-                my @dd_tags = ($con =~ /b-rubric__list__loopitem\"\>\<a href=\".+?\"/g);
-
-                for my $dtag (@dd_tags) {
-                    if ($dtag =~ /href=\"(\S+)\"/) {
-                        my $path = $1;
-                        next if $path =~ /http\:/;
-                        my $yaca = $yaca_path . $path;
-                        make_path($yaca);
-                        push @yaca_site_urls, $yaca_url . $path;
-                    }
-                }
+                push @yaca_site_urls, $yaca_url . $path;
             }
         }
     }
