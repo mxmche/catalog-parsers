@@ -1,0 +1,31 @@
+# config-file-type: JSON 1
+{
+   "path" : "/home/jester/work/parser",
+   "seed" : "/home/jester/work/parser/extracted",
+
+   # logfiles
+   "parserlog" : "/home/jester/work/parser/logs/parser.log",
+   "crawlog"   : "/home/jester/work/parser/logs/crawler.log",
+
+   # yaca
+   "yaca-url"          : "http://yaca.yandex.ru",
+   "yaca-rubrics"      : "/home/jester/work/parser/public/yaca-rubrics.txt",
+   "yaca-rubrics-urls" : "/home/jester/work/parser/public/yaca-rubrics-urls.txt",
+   "yaca"              : "/home/jester/work/parser/yaca",
+
+   "threads" : 10,
+
+   #"password" : "xxxxxx",
+ 
+   # some colors to choose from
+   #"colors" : [ "red", "green", "blue" ],
+ 
+   # some statistics
+   #"stats" : {
+   #        "health" : 32,
+   #        "vitality" : 11
+   #},
+ 
+   # including another file
+   #"includes" : ["macros.conf"]
+}

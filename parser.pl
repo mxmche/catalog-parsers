@@ -16,7 +16,7 @@ use Nadmin::setup_logging;
 use Data::Dumper;
 
 # read config
-my $config = Config::JSON->new("config");
+my $config = Config::JSON->new("config.json");
 
 my $yaca_url  = $config->get("yaca-url");
 my $yaca_path = $config->get("path");
@@ -40,29 +40,9 @@ sub main {
 
     warn "Starting parser ...";
 
-    @main_rubrics_urls = read_file($rubrics_file, chomp => 1);
-
-    # check if file with yandex catalog rubric urls exists
-    unless (-e $yaca_urls_file) {
-        warn "$yaca_urls_file not found, fetching ...";
-
-        @yaca_site_urls = get_and_store_yaca(@main_rubrics_urls);
-
-        warn "saving to $yaca_urls_file...";
-
-        # save results with yandex catalog urls to disk
-        open(F, ">$yaca_urls_file") || die "";
-        for my $url (@yaca_site_urls) {
-           print F "$url\n";
-        }
-        close(F);
-    }
-
-    if (-e $yaca_urls_file && ! -d "$yaca_path/yaca") {
-        get_and_store_yaca(@main_rubrics_urls);
-    }
-
-    my @url = read_file($yaca_urls_file, chomp => 1);
+    my @url = check_local_yaca();
+    print Dumper \@url;
+    exit;
 
     for my $rubric (@url) {
         warn "fetching $rubric ...";
@@ -99,9 +79,7 @@ sub main {
 
                 parse_page( $url, ${ $self->{data} } );
 
-                #my $msg = "fetching $url ... ";
                 $msg = ($code == 200)? "DONE" : "NO";
-                #warn $msg;
             },
         )->wait;
         warn $msg;
