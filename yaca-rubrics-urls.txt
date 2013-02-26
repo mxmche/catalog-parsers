@@ -2,7 +2,6 @@ http://yaca.yandex.ru/yca/cat/Computers/Computers/hardware/
 http://yaca.yandex.ru/yca/cat/Computers/Computers/Notebooks/
 http://yaca.yandex.ru/yca/cat/Computers/Computers/Apple/
 http://yaca.yandex.ru/yca/cat/Computers/Computers/Tablets/
-http://yaca.yandex.ru/yca/cat/Computers/Computers/MiniComputers/
 http://yaca.yandex.ru/yca/cat/Computers/Computers/Servers/
 http://yaca.yandex.ru/yca/cat/Computers/Computers/Monitors/
 http://yaca.yandex.ru/yca/cat/Computers/Computers/Video_cards/
@@ -112,7 +111,7 @@ http://yaca.yandex.ru/yca/cat/Private_Life/Holidays/Flowers/
 http://yaca.yandex.ru/yca/cat/Private_Life/Holidays/Celebrations/
 http://yaca.yandex.ru/yca/cat/Private_Life/Holidays/Firework/
 http://yaca.yandex.ru/yca/cat/Private_Life/Family/Marriage/
-http://yaca.yandex.ru/yca/cat/Private_Life/Holidays/Valentine/
+http://yaca.yandex.ru/yca/cat/Private_Life/Holidays/February23/
 http://yaca.yandex.ru/yca/cat/Private_Life/Holidays/Fancy_dress/
 http://yaca.yandex.ru/yca/cat/Private_Life/Family/Parents/
 http://yaca.yandex.ru/yca/cat/Private_Life/Family/Children/
@@ -263,7 +262,6 @@ http://yaca.yandex.ru/yca/cat/Culture/Music/Electronic/
 http://yaca.yandex.ru/yca/cat/Culture/Music/Alternative/
 http://yaca.yandex.ru/yca/cat/Culture/Music/Chanson/
 http://yaca.yandex.ru/yca/cat/Culture/Music/Soundtrack/
-http://yaca.yandex.ruhttp://music.yandex.ru
 http://yaca.yandex.ru/yca/cat/Culture/Music/Eurovision-2012/
 http://yaca.yandex.ru/yca/cat/Culture/Music/Showbiz/
 http://yaca.yandex.ru/yca/cat/Culture/Music/Musical_instruments/

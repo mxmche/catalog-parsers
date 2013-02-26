@@ -1,4 +1,4 @@
-package YandexParser;
+package Yandex::Parser;
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -73,7 +73,13 @@ sub get_sites_number {
     my $ua = Mojo::UserAgent->new();
     my $text = $ua->get($rubric_url)->res->dom->find('.b-site-counter__number')->pluck('text');
 
-    return ($text =~ /(\d+)/)? $1 : "";
+    if ($text =~ /(\d+)/) {
+        #warn "$1 sites in $rubric_url";
+        return $1;
+    }
+    else {
+        return "";
+    }
 }
 
 # Extract all yandex rubrics urls and save them to disk
