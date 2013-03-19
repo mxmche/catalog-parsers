@@ -2,7 +2,7 @@ package Yandex::Parser;
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(get_sites_number parse_page print_to_log check_local_yaca);
+our @EXPORT = qw(get_sites_number parse_page print_to_log update_local_yaca);
 
 use Config::JSON;
 use Mojo::UserAgent;
@@ -17,6 +17,7 @@ my $path = "/home/jester/work/parser";
 my $config = Config::JSON->new("config.json");
 
 my $rubrics_file = $config->get("yaca-rubrics");
+my $yr_urls      = $config->get("yaca-rubrics-urls");
 my $yaca_url     = $config->get("yaca-url");
 my $yaca         = $config->get("yaca");
 
@@ -38,14 +39,29 @@ sub parse_page {
 
     # get urls from http://yaca.yandex.ru/yca/cat/Computers/Computers/hardware/84.html
     # and save to Computers/Computers/hardware/urls.txt
+#    $yaca_url
+
+    my $file;
     if ($url =~ /$full_yaca\/(.+)\//) {
-        my $file = "$yaca_path/yca/cat/$1/urls.txt";
-        open(URLS, ">$file") || die "$file: $!";
-        for my $item (@urls) {
-            print URLS "$item\n";
-        }
-        close(URLS);
+        $file = "$yaca/yca/cat/$1/urls.txt";
     }
+     #   open(URLS, ">>$file") || die "$file: $!";
+     #   for my $item (@urls) {
+     #       print URLS "$item\n";
+     #   }
+     #   close(URLS);
+    #}
+    elsif ($url =~ /$yaca_url\/(.+)\//) {
+#        warn "writing $file ...";
+        $file = "$yaca/$1/urls.txt";
+    }
+#        warn "writing $file ...";
+    open(URLS, ">>$file") || die "$file: $!";
+    for my $item (@urls) {
+        print URLS "$item\n";
+    }
+    close(URLS);
+    #}
 }
 
 # Returns number of websites in yaca rubric
@@ -64,10 +80,35 @@ sub get_sites_number {
     }
 }
 
+# checks yaca-rubric-urls file for new urls
+# returns fresh urls that were not downloaded
 
-sub check_local_yaca {
+sub update_local_yaca {
     my @yaca_site_urls;
+
     -d $yaca || make_path($yaca);
+
+    if (-e $yr_urls) {
+        unlink $yr_urls or die "Could not unlink $yr_urls: $!";
+    }
+
+=comment
+    # checks $rubrics_file for new urls
+    my @fresh;
+    my @r_urls = read_file($yr_urls, chomp => 1);
+    for my $url (@r_urls) {
+        warn $url;
+        if ($url =~ /^$yaca_url\/(.*)$/) {
+            my $filepath = "$yaca/$1" . "urls.txt";
+            #warn "$yaca/$1/urls.txt";
+            unless (-e $filepath) {
+                #warn $filepath;
+                push @fresh, $url;
+            }
+        }
+    }
+    return @fresh if @fresh;
+=cut
 
     # open file with yaca rubrics
     # check path to urls file
@@ -80,39 +121,52 @@ sub check_local_yaca {
     warn "checking local catalog ...";
 
     for my $url (@rubric_urls) {
+        next if $url =~ /^#/;
         warn "processing $url ...";
-
-        my @dt_tags = $ua->get($url)->res->dom->find('.b-rubric__list__item__link')->each;
-
-        for my $tag (@dt_tags) {
-            my $path = Mojo::URL->new($tag->{href});
-
+        my @sub_rubric_urls = $ua->get($url)->res->dom->find('.b-rubric__list__item__link')->each;
+        for my $s_url (@sub_rubric_urls) {
+            next unless defined $s_url->{href};
+            my $path = Mojo::URL->new($s_url->{href});
             next if $path =~ /^http/;
-            my $sub_rubric_item = $yaca_url . $path;
+            my $sub_rubric_url = $yaca_url . $path;
 
             my $dir = $yaca . $path;
             -d $dir || make_path($dir);
 
-            my @dd_tags = $ua->get($sub_rubric_item)->res->dom->find('.b-rubric__list__item__link')->each;
+            my @ss_rubric_urls = $ua->get($sub_rubric_url)->res->dom->find('.b-rubric__list__item__link')->each;
+            # two level rubric
+            unless (@ss_rubric_urls) {
+                write_to_file($sub_rubric_url);
+                my $file = $dir . "urls.txt";
+                unless (-e $file) {
+                    push @yaca_site_urls, $sub_rubric_url;
+                }
+                next;
+            }
 
-            for my $dtag (@dd_tags) {
-                my $path = Mojo::URL->new($dtag->{href});
-
-                next if $path =~ /^http/;
-                my $full_yaca = $yaca . $path;
-                -d $full_yaca || make_path($full_yaca);
+            for my $ss_url (@ss_rubric_urls) {
+                my $ppath = Mojo::URL->new($ss_url->{href});
+                next if $ppath =~ /^http/;
 
                 # add rubric url to list if it wasn't exist
-                my $file = $full_yaca . "urls.txt";
+                my $file = $yaca . $ppath . "urls.txt";
+                my $long_url = $yaca_url . $ppath;
                 unless (-e $file) {
-                    my $long_url = $yaca_url . $path;
-                    warn "$long_url added to download list";
+                    #warn $long_url;
                     push @yaca_site_urls, $long_url;
                 }
+                write_to_file($long_url);
             }
         }
     }
     return @yaca_site_urls;
+}
+
+sub write_to_file {
+    my ($url) = @_;
+    open(F, ">>$yr_urls") || die "$yr_urls: $!";
+    print F "$url\n";
+    close(F);
 }
 
 1;

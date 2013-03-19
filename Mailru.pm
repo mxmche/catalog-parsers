@@ -2,7 +2,7 @@ package Mailru;
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(build_local_catalog get_urls_number get_pages);
+our @EXPORT = qw(build_local_catalog get_urls_number get_pages parse_page2);
 
 use strict;
 use warnings;
@@ -22,6 +22,27 @@ my $rubric_file = "list.mail.ru-rubrics.txt";
 my @rubrics;
 my @pages;
 my %uniq;
+
+my %r = (
+    1001 => "Автомобили",
+    10896 => "Бизнес и финансы",
+    10897 => "Домашний очаг",
+    10898 => "Интернет",
+    10900 => "Компьютеры",
+    10901 => "Культура и искусство",
+    10993 => "Медицина и здоровье",
+    10902 => "Наука и образование",
+    10903 => "Непознанное",
+    10906 => "Новости и СМИ",
+    2 => "Общество и политика",
+    10904 => "Отдых и развлечения",
+    14249 => "Производство",
+    10899 => "Работа и заработок",
+    10907 => "Спорт",
+    10908 => "Справки",
+    14263 => "Товары и услуги",
+    10909 => "Юмор"
+);
 
 my $ua = Mojo::UserAgent->new();
 
@@ -48,6 +69,7 @@ sub build_local_catalog {
 
 # Returns list of urls of webpages
 sub get_pages {
+#warn "get_pages";
     my ($url, $number) = @_;
     $url =~ /^$cat_url\/(\d+)/;
     my $rubric = $1;
@@ -61,6 +83,7 @@ sub get_pages {
 
 # Extracts number of websites in catalog's rubric
 sub get_urls_number {
+#warn "get_urls_number";
     my ($url) = @_;
     my $urls_number = 0;
     my @lines = $ua->get($url)->res->dom->find('b')->each;
@@ -72,6 +95,34 @@ sub get_urls_number {
         }
     }
     return $urls_number;
+}
+
+sub parse_page2 {
+    my ($url, $content) = @_;
+
+    # find urls in catalog
+    my @links = ($content =~ /href=.+\<\/a\>/g);
+
+    my @urls;
+    for my $e (@links) {
+        if ($e =~ /\>(http.+?)\<\/a\>$/) {
+            #warn $1;
+            push @urls, $1;
+        }
+    }
+
+    $url =~ /^$cat_url\/(\d+)\//;
+    my $r_name = $r{$1};
+    my $file = "$cat/$r_name/urls.txt";
+    #warn $url;
+    
+ #   warn "writing in $file...";
+
+    open(F, ">>$file") || die "$file: $!";
+    for my $e (@urls) {
+        print F "$e\n";
+    }
+    close(F);
 }
 
 =comment

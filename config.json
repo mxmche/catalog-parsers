@@ -1,23 +1,33 @@
 # config-file-type: JSON 1
 {
    "path" : "/home/jester/work/parser",
-   "seed" : "/home/jester/work/parser/extracted",
+   #"seed" : "/home/jester/work/parser/extracted",
 
    # logfiles
    "parserlog" : "/home/jester/work/parser/logs/parser.log",
    "crawlog"   : "/home/jester/work/parser/logs/crawler.log",
 
-   # yaca
+   # yandex catalog settings
    "yaca-url"          : "http://yaca.yandex.ru",
    "yaca-rubrics"      : "/home/jester/work/parser/public/yaca-rubrics.txt",
    "yaca-rubrics-urls" : "/home/jester/work/parser/public/yaca-rubrics-urls.txt",
    "yaca"              : "/home/jester/work/parser/yaca",
+   "fresh"             : "/home/jester/work/parser/public/fresh.txt",
 
    "threads" : 10,
 
+   # rambler catalog settings
+   "rambler-url"     : "http://top100.rambler.ru/",
+   "rambler-navi"    : "http://top100.rambler.ru/navi/",
+   "rambler-local"   : "public/rambler",
+   "rambler-cat"     : "public/top100.rambler.ru_categories.txt",
+   "rambler-full"    : "public/top100.rambler.ru_full_categories.txt",
+   "search-upper"    : ".catalog-top100 dt a",
+   "search-cat"      : "#theme_full dd a",
+
    #"password" : "xxxxxx",
  
-   # some colors to choose from
+   # some colors to http://top100.rambler.ru/choose from
    #"colors" : [ "red", "green", "blue" ],
  
    # some statistics
